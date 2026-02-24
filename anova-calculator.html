@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANOVA Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --accent: #38bdf8;
+    --accent2: #818cf8;
+    --accent3: #34d399;
+    --warn: #fb923c;
+    --danger: #f87171;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --glow: rgba(56,189,248,0.15);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(56,189,248,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,189,248,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    padding: 3rem 0 2.5rem;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .badge {
+    display: inline-block;
+    background: linear-gradient(135deg, rgba(56,189,248,0.15), rgba(129,140,248,0.15));
+    border: 1px solid rgba(56,189,248,0.3);
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.35rem 1rem;
+    border-radius: 999px;
+    margin-bottom: 1.2rem;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 700;
+    background: linear-gradient(135deg, #e2e8f0, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+    margin-bottom: 0.75rem;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.95rem;
+    font-weight: 300;
+  }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 1.25rem;
+    padding: 1.75rem;
+    margin-bottom: 1.25rem;
+    animation: fadeUp 0.6s ease both;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(56,189,248,0.4), transparent);
+  }
+
+  .card-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .card-title::before {
+    content: '';
+    display: block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* Groups */
+  .groups-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .group-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 0.875rem;
+    padding: 1.1rem 1.25rem;
+    transition: border-color 0.2s;
+    animation: fadeUp 0.4s ease both;
+  }
+  .group-item:hover { border-color: rgba(56,189,248,0.3); }
+
+  .group-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .group-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent2);
+    flex: 1;
+  }
+
+  .group-name-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    padding: 0.2rem 0.3rem;
+    width: 160px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .group-name-input:focus { border-color: var(--accent); }
+
+  .btn-remove {
+    background: none;
+    border: 1px solid rgba(248,113,113,0.3);
+    color: var(--danger);
+    border-radius: 6px;
+    padding: 0.25rem 0.55rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Mono', monospace;
+  }
+  .btn-remove:hover { background: rgba(248,113,113,0.1); }
+
+  .data-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    padding: 0.65rem 0.9rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    resize: vertical;
+    min-height: 70px;
+  }
+  .data-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(56,189,248,0.1);
+  }
+  .data-hint {
+    font-size: 0.73rem;
+    color: var(--muted);
+    margin-top: 0.45rem;
+  }
+
+  /* Buttons */
+  .actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: none;
+    border-radius: 0.65rem;
+    padding: 0.65rem 1.3rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #0a0e1a;
+    font-weight: 600;
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(56,189,248,0.3);
+  }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    background: rgba(56,189,248,0.08);
+    border: 1px solid rgba(56,189,248,0.25);
+    color: var(--accent);
+  }
+  .btn-secondary:hover { background: rgba(56,189,248,0.14); }
+
+  .btn-ghost {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,0.07); color: var(--text); }
+
+  /* Results */
+  #results { display: none; animation: fadeUp 0.5s ease both; }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 0.875rem;
+    padding: 1.1rem;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: rgba(56,189,248,0.3); }
+
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.67rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.35rem;
+    font-weight: 500;
+    color: var(--accent);
+  }
+
+  .stat-value.highlight { color: var(--accent3); font-size: 1.5rem; }
+  .stat-value.warn { color: var(--warn); }
+
+  /* ANOVA Table */
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 0.875rem;
+    border: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+  }
+
+  thead tr {
+    background: rgba(56,189,248,0.07);
+  }
+  th {
+    text-align: left;
+    padding: 0.8rem 1rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(30,45,69,0.6);
+    color: var(--text);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+  .td-source { color: var(--accent2); font-weight: 500; }
+  .td-f { color: var(--warn); font-weight: 500; }
+  .td-p { font-weight: 600; }
+
+  /* Verdict */
+  .verdict {
+    border-radius: 0.875rem;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    border: 1px solid;
+    margin-bottom: 1rem;
+  }
+  .verdict.significant {
+    background: rgba(52,211,153,0.07);
+    border-color: rgba(52,211,153,0.3);
+  }
+  .verdict.not-significant {
+    background: rgba(251,146,60,0.07);
+    border-color: rgba(251,146,60,0.25);
+  }
+  .verdict-icon { font-size: 1.5rem; flex-shrink: 0; }
+  .verdict-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.3rem;
+  }
+  .significant .verdict-title { color: var(--accent3); }
+  .not-significant .verdict-title { color: var(--warn); }
+  .verdict-desc { font-size: 0.83rem; color: var(--muted); line-height: 1.6; }
+
+  /* Group summary */
+  .group-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .gsum-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 0.85rem 1rem;
+  }
+  .gsum-name {
+    font-size: 0.78rem;
+    color: var(--accent2);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 0.4rem;
+  }
+  .gsum-stats {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .gsum-stats span { color: var(--text); font-weight: 500; }
+
+  /* Error */
+  .error-msg {
+    background: rgba(248,113,113,0.08);
+    border: 1px solid rgba(248,113,113,0.3);
+    color: var(--danger);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.83rem;
+    font-family: 'DM Mono', monospace;
+    display: none;
+    margin-top: 0.75rem;
+    animation: shake 0.3s ease;
+  }
+
+  /* Animations */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  .alpha-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.75rem;
+  }
+  .alpha-row label {
+    font-size: 0.83rem;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+  select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    padding: 0.35rem 0.7rem;
+    outline: none;
+    cursor: pointer;
+  }
+  select:focus { border-color: var(--accent); }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.75rem;
+    padding: 2rem 0 0;
+    font-family: 'DM Mono', monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="badge">Statistical Analysis</div>
+    <h1>One-Way ANOVA</h1>
+    <p class="subtitle">Analysis of Variance · Compare means across multiple groups</p>
+  </header>
+
+  <!-- Input Card -->
+  <div class="card" style="animation-delay:0.1s">
+    <div class="card-title">Group Data</div>
+
+    <div class="groups-wrap" id="groupsWrap">
+      <!-- Groups injected here -->
+    </div>
+
+    <div class="actions" style="margin-top:1.25rem">
+      <button class="btn btn-secondary" onclick="addGroup()">+ Add Group</button>
+      <button class="btn btn-ghost" onclick="loadExample()">Load Example</button>
+    </div>
+
+    <div class="alpha-row">
+      <label>Significance level (α):</label>
+      <select id="alphaSelect">
+        <option value="0.01">0.01</option>
+        <option value="0.05" selected>0.05</option>
+        <option value="0.10">0.10</option>
+      </select>
+    </div>
+
+    <div id="errorMsg" class="error-msg"></div>
+
+    <div class="actions" style="margin-top:1.25rem">
+      <button class="btn btn-primary" onclick="calculate()">▶ Calculate ANOVA</button>
+      <button class="btn btn-ghost" onclick="resetAll()">Reset</button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+    <div class="card" style="animation-delay:0.05s">
+      <div class="card-title">Summary Statistics</div>
+      <div class="results-grid" id="summaryStats"></div>
+      <div class="group-summary" id="groupSummary"></div>
+    </div>
+
+    <div class="card" style="animation-delay:0.1s">
+      <div class="card-title">ANOVA Table</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>SS</th>
+              <th>df</th>
+              <th>MS</th>
+              <th>F-statistic</th>
+              <th>p-value</th>
+            </tr>
+          </thead>
+          <tbody id="anovaTable"></tbody>
+        </table>
+      </div>
+      <div id="verdict" class="verdict"></div>
+    </div>
+  </div>
+
+  <footer>Built with precision · One-Way ANOVA · F-distribution p-values</footer>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let groupCount = 0;
+
+function addGroup(name = '', data = '') {
+  groupCount++;
+  const id = groupCount;
+  const wrap = document.getElementById('groupsWrap');
+  const el = document.createElement('div');
+  el.className = 'group-item';
+  el.id = `group-${id}`;
+  el.style.animationDelay = '0s';
+  el.innerHTML = `
+    <div class="group-header">
+      <span class="group-label">Group ${id}</span>
+      <input class="group-name-input" placeholder="Group name…" value="${name}" />
+      <button class="btn-remove" onclick="removeGroup(${id})">✕ Remove</button>
+    </div>
+    <textarea class="data-input" placeholder="12.3, 14.5, 11.8, 13.2, 15.0" rows="2">${data}</textarea>
+    <div class="data-hint">Comma or space separated numbers</div>
+  `;
+  wrap.appendChild(el);
+}
+
+function removeGroup(id) {
+  const el = document.getElementById(`group-${id}`);
+  if (el) el.remove();
+}
+
+function resetAll() {
+  document.getElementById('groupsWrap').innerHTML = '';
+  groupCount = 0;
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('errorMsg').style.display = 'none';
+  addGroup('Group A');
+  addGroup('Group B');
+  addGroup('Group C');
+}
+
+function loadExample() {
+  document.getElementById('groupsWrap').innerHTML = '';
+  groupCount = 0;
+  document.getElementById('results').style.display = 'none';
+  addGroup('Control',   '23.1, 22.5, 24.0, 21.8, 23.4, 22.9');
+  addGroup('Treatment 1','27.3, 28.1, 26.5, 29.0, 27.8, 28.5');
+  addGroup('Treatment 2','25.0, 24.3, 25.8, 24.7, 26.1, 25.5');
+}
+
+// ── Parse & Validate ───────────────────────────────────────────────────────
+function parseGroups() {
+  const items = document.querySelectorAll('.group-item');
+  const groups = [];
+  for (const item of items) {
+    const nameEl = item.querySelector('.group-name-input');
+    const dataEl = item.querySelector('.data-input');
+    const raw = dataEl.value.trim();
+    if (!raw) continue;
+    const nums = raw.split(/[\s,]+/).filter(Boolean).map(Number);
+    if (nums.some(isNaN)) return { error: `"${nameEl.value || 'Group'}" contains non-numeric values.` };
+    if (nums.length < 2) return { error: `Each group needs at least 2 values.` };
+    groups.push({ name: nameEl.value || `Group ${groups.length + 1}`, data: nums });
+  }
+  if (groups.length < 2) return { error: 'Please enter at least 2 groups.' };
+  return { groups };
+}
+
+// ── Statistics ─────────────────────────────────────────────────────────────
+const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+const variance = arr => { const m = mean(arr); return arr.reduce((a, b) => a + (b - m) ** 2, 0) / (arr.length - 1); };
+const std = arr => Math.sqrt(variance(arr));
+
+function anova(groups) {
+  const allData = groups.flatMap(g => g.data);
+  const grandMean = mean(allData);
+  const N = allData.length;
+  const k = groups.length;
+
+  let SSB = 0, SSW = 0;
+  for (const g of groups) {
+    const gm = mean(g.data);
+    SSB += g.data.length * (gm - grandMean) ** 2;
+    SSW += g.data.reduce((a, v) => a + (v - gm) ** 2, 0);
+  }
+
+  const dfB = k - 1;
+  const dfW = N - k;
+  const MSB = SSB / dfB;
+  const MSW = SSW / dfW;
+  const F = MSB / MSW;
+  const p = 1 - fCDF(F, dfB, dfW);
+
+  return { SSB, SSW, SST: SSB + SSW, dfB, dfW, MSB, MSW, F, p, grandMean, N, k };
+}
+
+// Regularized incomplete beta for F-distribution p-value
+function fCDF(x, d1, d2) {
+  return betaInc(d1 * x / (d1 * x + d2), d1 / 2, d2 / 2);
+}
+
+function betaInc(x, a, b) {
+  if (x === 0) return 0;
+  if (x === 1) return 1;
+  const lbeta = lgamma(a) + lgamma(b) - lgamma(a + b);
+  const front = Math.exp(Math.log(x) * a + Math.log(1 - x) * b - lbeta) / a;
+  return front * betaCF(x, a, b);
+}
+
+function betaCF(x, a, b) {
+  const MAXIT = 200, EPS = 3e-7;
+  let qab = a + b, qap = a + 1, qam = a - 1;
+  let c = 1, d = 1 - qab * x / qap;
+  if (Math.abs(d) < 1e-30) d = 1e-30;
+  d = 1 / d;
+  let h = d;
+  for (let m = 1; m <= MAXIT; m++) {
+    const m2 = 2 * m;
+    let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+    d = 1 + aa * d; if (Math.abs(d) < 1e-30) d = 1e-30;
+    c = 1 + aa / c; if (Math.abs(c) < 1e-30) c = 1e-30;
+    d = 1 / d; h *= d * c;
+    aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+    d = 1 + aa * d; if (Math.abs(d) < 1e-30) d = 1e-30;
+    c = 1 + aa / c; if (Math.abs(c) < 1e-30) c = 1e-30;
+    d = 1 / d;
+    const del = d * c;
+    h *= del;
+    if (Math.abs(del - 1) < EPS) break;
+  }
+  return h;
+}
+
+function lgamma(x) {
+  const g = 7;
+  const p = [0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - lgamma(1 - x);
+  x -= 1;
+  let a = p[0];
+  const t = x + g + 0.5;
+  for (let i = 1; i < g + 2; i++) a += p[i] / (x + i);
+  return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+}
+
+function fmt(n, d = 4) { return Number.isFinite(n) ? n.toFixed(d) : '—'; }
+function fmtP(p) {
+  if (p < 0.001) return '< 0.001';
+  if (p < 0.0001) return '< 0.0001';
+  return p.toFixed(4);
+}
+
+// ── Calculate ──────────────────────────────────────────────────────────────
+function calculate() {
+  const errEl = document.getElementById('errorMsg');
+  errEl.style.display = 'none';
+  document.getElementById('results').style.display = 'none';
+
+  const parsed = parseGroups();
+  if (parsed.error) {
+    errEl.textContent = '⚠ ' + parsed.error;
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const { groups } = parsed;
+  const res = anova(groups);
+  const alpha = parseFloat(document.getElementById('alphaSelect').value);
+
+  // Summary stats
+  const ssEl = document.getElementById('summaryStats');
+  ssEl.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Grand Mean</div>
+      <div class="stat-value">${fmt(res.grandMean, 3)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">F-Statistic</div>
+      <div class="stat-value warn">${fmt(res.F, 3)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">p-value</div>
+      <div class="stat-value ${res.p < alpha ? 'highlight' : ''}">${fmtP(res.p)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total N</div>
+      <div class="stat-value">${res.N}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Groups (k)</div>
+      <div class="stat-value">${res.k}</div>
+    </div>
+  `;
+
+  // Group summary
+  const gsEl = document.getElementById('groupSummary');
+  gsEl.innerHTML = groups.map(g => `
+    <div class="gsum-item">
+      <div class="gsum-name">${g.name}</div>
+      <div class="gsum-stats">
+        n: <span>${g.data.length}</span><br>
+        Mean: <span>${fmt(mean(g.data), 3)}</span><br>
+        SD: <span>${fmt(std(g.data), 3)}</span>
+      </div>
+    </div>
+  `).join('');
+
+  // ANOVA table
+  document.getElementById('anovaTable').innerHTML = `
+    <tr>
+      <td class="td-source">Between Groups</td>
+      <td>${fmt(res.SSB)}</td>
+      <td>${res.dfB}</td>
+      <td>${fmt(res.MSB)}</td>
+      <td class="td-f">${fmt(res.F, 3)}</td>
+      <td class="td-p" style="color:${res.p < alpha ? 'var(--accent3)' : 'var(--warn)'}">${fmtP(res.p)}</td>
+    </tr>
+    <tr>
+      <td class="td-source">Within Groups</td>
+      <td>${fmt(res.SSW)}</td>
+      <td>${res.dfW}</td>
+      <td>${fmt(res.MSW)}</td>
+      <td>—</td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td class="td-source">Total</td>
+      <td>${fmt(res.SST)}</td>
+      <td>${res.dfB + res.dfW}</td>
+      <td>—</td>
+      <td>—</td>
+      <td>—</td>
+    </tr>
+  `;
+
+  // Verdict
+  const sig = res.p < alpha;
+  const verdictEl = document.getElementById('verdict');
+  verdictEl.className = `verdict ${sig ? 'significant' : 'not-significant'}`;
+  verdictEl.innerHTML = `
+    <div class="verdict-icon">${sig ? '✅' : '⚠️'}</div>
+    <div>
+      <div class="verdict-title">${sig ? 'Statistically Significant Difference' : 'No Significant Difference'}</div>
+      <div class="verdict-desc">
+        ${sig
+          ? `F(${res.dfB}, ${res.dfW}) = ${fmt(res.F, 3)}, p = ${fmtP(res.p)} — At α = ${alpha}, we reject H₀. At least one group mean is significantly different from the others.`
+          : `F(${res.dfB}, ${res.dfW}) = ${fmt(res.F, 3)}, p = ${fmtP(res.p)} — At α = ${alpha}, we fail to reject H₀. There is insufficient evidence that group means differ significantly.`
+        }
+      </div>
+    </div>
+  `;
+
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Init
+resetAll();
+</script>
+</body>
+</html>
